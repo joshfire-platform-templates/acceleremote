@@ -1,0 +1,44 @@
+{
+  "name": "acceleremote",
+  "fullName": "Accelerometer remote",
+  "description": "A remote sending its accelerometer data through websockets",
+  "version": "0.0.1",
+  "keywords": [
+    "websocket",
+    "accelerometer",
+    "remote"
+  ],
+  "joshfire": {
+    "options": {
+      "schema": {
+        "socket": {
+          "type": "string",
+          "title": "WebSocket endpoint"
+        },
+        "polling": {
+          "type": "number",
+          "title": "Polling Interval",
+          "default": 1000,
+          "description":"In milliseconds"
+        },
+        "threshold":{
+          "type": "number",
+          "title": "Significance threshold",
+          "description":"Change threshold below which events won't be sent",
+          "default":0.1
+        }
+      },
+      "form": [
+        "socket",
+        {
+          "key":"polling",
+          "value":1000
+        },
+        {
+          "key":"threshold",
+          "value":0.1
+        }
+      ]
+    }
+  }
+}
