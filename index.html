@@ -10,75 +10,81 @@
 
     <script type="text/javascript" charset="utf-8">
 
-    // The watch id references the current `watchAcceleration`
-    var watchID = null;
+        var onready = function(f){/in/.test(document.readyState)?setTimeout(r,9,f):f()}
 
-    // Wait for Cordova to load
-    //
-    document.addEventListener("deviceready", onDeviceReady, false);
 
-    // Cordova is ready
-    //
-    function onDeviceReady() {
-        startWatch();
-    }
+        var lastValue = false;
+        var threshold = Joshfire.factory.config.template.options.threshold || 0.1;
+        var endpoint = Joshfire.factory.config.template.options.socket || 'http://localhost:8080';
 
-    // Start watching the acceleration
-    //
-    function startWatch() {
+        document.write("<"+"script src='"+endpoint+"/socket.io/socket.io.js'></"+"script>");
 
-        // Update acceleration every 3 seconds
-        var options = { frequency: Joshfire.factory.config.template.options.polling || 500 };
+        var socket;
 
-        watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
-    }
+        // The watch id references the current `watchAcceleration`
+        var watchID = null;
 
-    // Stop watching the acceleration
-    //
-    function stopWatch() {
-        if (watchID) {
-            navigator.accelerometer.clearWatch(watchID);
-            watchID = null;
+
+        // Cordova is ready
+        //
+        function onDeviceReady() {
+
+            onready(startWatch);
         }
-    }
 
-    var lastValue = false;
-    var threshold = Joshfire.factory.config.template.options.threshold || 0.1;
-    var endpoint = Joshfire.factory.config.template.options.endpoint || 'http://localhost:8080';
+        // Start watching the acceleration
+        //
+        function startWatch() {
+            socket = io.connect(endpoint);
 
-    document.write("<"+"script src='"+endpoint+"/socket.io/socket.io.js'></"+"script>");
+            // Update acceleration every 3 seconds
+            var options = { frequency: Joshfire.factory.config.template.options.polling || 500 };
 
-    var socket = io.connect(endpoint);
+            watchID = navigator.accelerometer.watchAcceleration(onSuccess, onError, options);
+        }
 
-    // onSuccess: Get a snapshot of the current acceleration
-    //
-    function onSuccess(acceleration) {
-        var element = document.getElementById('accelerometer');
-        element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
-                            'Acceleration Y: ' + acceleration.y + '<br />' +
-                            'Acceleration Z: ' + acceleration.z + '<br />' +
-                            'Timestamp: '      + acceleration.timestamp + '<br />';
+        // Stop watching the acceleration
+        //
+        function stopWatch() {
+            if (watchID) {
+                navigator.accelerometer.clearWatch(watchID);
+                watchID = null;
+            }
+        }
 
+        // onSuccess: Get a snapshot of the current acceleration
+        //
+        function onSuccess(acceleration) {
+            var element = document.getElementById('accelerometer');
+            element.innerHTML = 'Acceleration X: ' + acceleration.x + '<br />' +
+                                'Acceleration Y: ' + acceleration.y + '<br />' +
+                                'Acceleration Z: ' + acceleration.z + '<br />' +
+                                'Timestamp: '      + acceleration.timestamp + '<br />';
 
-        var send = true;
-        if (!lastValue) {
+            var send = true;
+            if (lastValue && Math.abs(acceleration.x-lastValue.x)<=threshold && Math.abs(acceleration.y-lastValue.y)<=threshold && Math.abs(acceleration.z-lastValue.z)<=threshold) {
+                send = false;
+            }
+
             lastValue = acceleration;
-        } else if (Math.abs(acceleration.x-lastValue.x)<=threshold && Math.abs(acceleration.y-lastValue.y)<=threshold && Math.abs(acceleration.z-lastValue.z)<=threshold) {
-            send = false;
+
+            if (send) {
+                element.innerHTML+="<b>SENT</b>";
+                socket.emit('acceleration',acceleration);
+            }
         }
 
-        if (send) {
-            element.innerHTML+="<b>SENT</b>";
-            socket.emit('acceleration',acceleration);
+        // onError: Failed to get the acceleration
+        //
+        function onError() {
+            alert('onError!');
         }
-    }
 
-    // onError: Failed to get the acceleration
-    //
-    function onError() {
-        alert('onError!');
-    }
 
+        // Wait for Cordova to load
+        //
+        document.addEventListener("deviceready", onDeviceReady, false);
+        
     </script>
   </head>
   <body>
